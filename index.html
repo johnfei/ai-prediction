@@ -63,66 +63,63 @@
         <img id="preview" alt="" style="display: none;">
     </div>
 
-    <script>
-        function classifyImage() {
-            const fileInput = document.getElementById('imageUpload');
-            const responseDiv = document.getElementById('response');
-            const preview = document.getElementById('preview');
+    <script type="module">
+            import { Client } from "https://cdn.skypack.dev/@gradio/client";
 
-            if (!fileInput.files[0]) {
-                responseDiv.textContent = 'Please upload an image first.';
-                return;
+            async function classifyImage() {
+                const fileInput = document.getElementById('imageUpload');
+                const responseDiv = document.getElementById('response');
+
+                if (!fileInput.files[0]) {
+                    responseDiv.textContent = 'Please upload an image first.';
+                    return;
+                }
+
+                const file = fileInput.files[0];
+
+                try {
+                    // Convert the uploaded file to a Blob
+                    const exampleImage = file;
+
+                    // Connect to the Gradio client
+                    const client = await Client.connect("Flyghost/spacej");
+
+                    // Make the prediction
+                    const result = await client.predict("/classify_image", {
+                        img: exampleImage
+                    });
+
+                    console.log('Prediction result:', result.data); // Log the full result object
+
+                    // Beautify the response for better readability
+                    const label = result.data[0].label;
+                    const confidences = result.data[0].confidences.map(conf => `${conf.label}: ${(conf.confidence * 100).toFixed(2)}%`).join('<br>');
+
+                    responseDiv.innerHTML = `<strong>Prediction:</strong> ${label}<br><strong>Confidences:</strong><br>${confidences}`;
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseDiv.textContent = 'An error occurred while classifying the image.';
+                }
             }
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            // Attach the function to the window object to make it globally accessible
+            window.classifyImage = classifyImage;
 
-            // Display the image preview
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
+            document.getElementById('imageUpload').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const preview = document.getElementById('preview');
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
 
-            responseDiv.textContent = 'Classifying...';
-
-            // Replace with your API endpoint
-            const apiUrl = 'https://flyghost-spacej.hf.space/gradio_api/call/classify_image';
-
-            const formData = {
-                data: [
-                    {
-                        path: preview.src,
-                        meta: { _type: 'gradio.FileData' }
-                    }
-                ]
-            };
-
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                const eventId = data.event_id; // Access event_id directly
-                const eventUrl = `${apiUrl}/${eventId}`;
-
-                return fetch(eventUrl, {
-                    method: 'GET'
-                });
-            })
-            .then(response => response.json())
-            .then(data => {
-                responseDiv.textContent = `Result: ${data.result}`;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                responseDiv.textContent = 'An error occurred while classifying the image.';
+                    const responseDiv = document.getElementById('response');
+                    responseDiv.textContent = '';
+                }
             });
-        }
-    </script>
+        </script>
 </body>
 </html>
