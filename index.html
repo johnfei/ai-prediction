@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog or Cat Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            margin: 50px auto;
+            padding: 20px;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .response {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dog or Cat Classifier</h1>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button class="upload-btn" onclick="classifyImage()">Upload and Classify</button>
+        <div class="response" id="response"></div>
+        <img id="preview" alt="" style="display: none;">
+    </div>
+
+    <script>
+        function classifyImage() {
+            const fileInput = document.getElementById('imageUpload');
+            const responseDiv = document.getElementById('response');
+            const preview = document.getElementById('preview');
+
+            if (!fileInput.files[0]) {
+                responseDiv.textContent = 'Please upload an image first.';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            // Display the image preview
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            responseDiv.textContent = 'Classifying...';
+
+            // Replace with your API endpoint
+            const apiUrl = 'https://flyghost-spacej.hf.space/gradio_api/call/classify_image';
+
+            const formData = {
+                data: [
+                    {
+                        path: preview.src,
+                        meta: { _type: 'gradio.FileData' }
+                    }
+                ]
+            };
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const eventId = data.event_id; // Access event_id directly
+                const eventUrl = `${apiUrl}/${eventId}`;
+
+                return fetch(eventUrl, {
+                    method: 'GET'
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                responseDiv.textContent = `Result: ${data.result}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                responseDiv.textContent = 'An error occurred while classifying the image.';
+            });
+        }
+    </script>
+</body>
+</html>
